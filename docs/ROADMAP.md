@@ -52,6 +52,13 @@
 
 ## 阶段 1：基础框架（MVP）
 
+> 基于用户决策调整：
+> - ✅ 包含 apply_diff（原 v0.5）
+> - ✅ 智能上下文管理（原 v0.6）
+> - ✅ 可配置安全策略
+> - ⏸️ Windows 支持延后（原 v0.4）
+> - ⏸️ 其他 Provider 延后（原 v0.2-v0.3）
+
 ### v0.1.0 - 项目脚手架
 **目标：** 可运行的基础框架
 
@@ -76,21 +83,17 @@ $ xca config show
   model: gemma4:4b
 ```
 
-### v0.2.0 - Provider 层
-**目标：** 支持至少两种 LLM 接入
+### v0.2.0 - Ollama Provider + 流式响应
+**目标：** 本地模型能跑通对话
 
 **任务：**
 - [ ] Provider 抽象接口
-- [ ] Ollama Provider 实现
-- [ ] OpenAI Provider 实现
+- [ ] Ollama Provider 实现（唯一支持的 Provider）
 - [ ] 流式响应支持
-- [ ] 配置切换 Provider
+- [ ] 连接测试命令
 
 **验收标准：**
 ```bash
-$ xca config set provider ollama --model gemma4:4b
-✅ 已切换到 Ollama (gemma4:4b)
-
 $ xca config test
 🔄 测试连接...
 ✅ Ollama 连接正常，模型就绪
@@ -99,103 +102,81 @@ $ echo "你好" | xca
 你好！我是 Xca Agent，有什么可以帮你的吗？
 ```
 
-### v0.3.0 - 工具系统基础
-**目标：** 实现核心工具，支持基础文件操作
+### v0.3.0 - 完整工具集
+**目标：** 实现所有 MVP 工具
 
 **任务：**
-- [ ] Tool 抽象接口
-- [ ] read_file 工具
-- [ ] list_directory 工具
-- [ ] write_file 工具
-- [ ] 工具调用基础流程
+- [ ] read_file（支持分块）
+- [ ] list_directory
+- [ ] write_file
+- [ ] edit_file（exact match）
+- [ ] apply_diff（unified diff）
+- [ ] search_files
+- [ ] execute_command
 
 **验收标准：**
 ```bash
-$ xca "读取 README.md"
-🔧 使用工具：read_file
-参数：{"path": "README.md"}
-
-[Xca Agent 根据文件内容回复...]
+$ xca "创建一个 HTTP server"
+🔧 使用工具：write_file
+...
+🔧 使用工具：execute_command
+...
+✅ 完成
 ```
 
-### v0.4.0 - Agent 核心
-**目标：** 完整的对话循环，支持多轮工具调用
+### v0.4.0 - Agent 核心 + 智能上下文
+**目标：** 完整的对话循环 + 上下文管理
 
 **任务：**
 - [ ] Agent 编排核心
 - [ ] 对话历史管理
-- [ ] Token 预算基础管理
+- [ ] Token 预算管理
+- [ ] 对话摘要（早期对话压缩）
+- [ ] 大文件自动分块
 - [ ] 交互式 CLI UI
-- [ ] 内置命令（/help, /clear, /exit）
+- [ ] 内置命令（/help, /clear, /context, /exit）
+
+**验收标准：**
+- 20+ 轮对话后仍能正常工作
+- 1000+ 行文件不会撑爆上下文
+- 支持查看上下文状态
+
+### v0.5.0 - 可配置安全策略
+**目标：** 生产级安全
+
+**任务：**
+- [ ] 权限系统（读取/写入/执行）
+- [ ] 危险命令确认
+- [ ] 敏感文件保护
+- [ ] 审计日志
+- [ ] `--danger` / `--yes` 模式
+- [ ] 配置文件支持黑白名单
 
 **验收标准：**
 ```bash
-$ xca
-🤖 Xca Agent v0.4.0
-提供商：Ollama (gemma4:4b)
-输入 /help 查看帮助
+$ xca "rm -rf /"
+⚠️ 危险命令！请输入 "delete" 确认：_____
 
-> 创建一个简单的 HTTP server
-🔧 使用工具：write_file
-...
-🔧 使用工具：execute_command (npm init -y)
-...
-✅ 已创建 server.js
-
-> 运行它
-🔧 使用工具：execute_command (node server.js)
-Server running on port 3000
+$ xca --danger "rm -rf /tmp/test"
+✅ 已执行（危险模式已开启）
 ```
 
 ---
 
-## 阶段 2：功能完善
+## 阶段 2：功能扩展
 
-### v0.5.0 - 完整工具集
-**目标：** 对标 Claude Code 的基础工具能力
-
-**任务：**
-- [ ] edit_file（精确编辑）
-- [ ] search_files（文本搜索）
-- [ ] execute_command（命令执行 + 安全确认）
-- [ ] apply_diff（diff 格式应用）
-- [ ] 大文件分块读取
-
-**验收标准：**
-- 可以完成"帮我把 var 改成 const"这样的任务
-- 危险命令有确认提示
-- 能处理 1000+ 行的文件
-
-### v0.6.0 - 上下文管理
-**目标：** 智能的上下文管理，支持长对话
+### v0.6.0 - 多 Provider 支持
+**目标：** 支持云端 API
 
 **任务：**
-- [ ] Token 计算和预算管理
-- [ ] 对话历史自动摘要
-- [ ] 文件上下文缓存
-- [ ] 相关文件自动关联
-- [ ] /undo 命令
-
-**验收标准：**
-- 20+ 轮对话后仍能正常工作
-- 大文件不会撑爆上下文
-- 能"记得"之前的讨论
-
----
-
-## 阶段 3：体验优化
-
-### v0.7.0 - 多 Provider 支持
-**目标：** 支持所有计划中的 Provider
-
-**任务：**
+- [ ] OpenAI Provider
 - [ ] Anthropic Provider
 - [ ] OpenRouter Provider
 - [ ] Provider 自动切换（Fallback）
-- [ ] 模型能力检测
+- [ ] 统一配置界面
 
-### v0.8.0 - 跨平台完善
-**目标：** Windows 和 macOS 都有原生体验
+### v0.7.0 - Windows 支持
+**目标：** Windows 原生体验
 
 **任务：**
 - [ ] Windows 路径处理
@@ -203,18 +184,19 @@ Server running on port 3000
 - [ ] Windows 配置文件位置
 - [ ] 跨平台测试
 
-### v0.9.0 - 安全与审计
-**目标：** 生产环境可用的安全级别
+### v0.8.0 - 体验优化
+**目标：** 打磨细节
 
 **任务：**
-- [ ] 完善的权限系统
-- [ ] 审计日志
-- [ ] 敏感文件保护
-- [ ] 命令黑名单/白名单
-- [ ] 只读模式
+- [ ] 终端 UI 美化
+- [ ] 快捷键支持
+- [ ] 会话历史持久化
+- [ ] 配置文件热重载
 
-### v1.0.0-beta
-**目标：** 功能冻结，邀请测试
+## 阶段 3：发布准备
+
+### v0.9.0 - Beta 测试
+**目标：** 邀请测试，收集反馈
 
 **任务：**
 - [ ] 完整文档
@@ -222,11 +204,7 @@ Server running on port 3000
 - [ ] Bug 修复
 - [ ] 性能优化
 
----
-
-## 阶段 4：正式发布
-
-### v1.0.0
+### v1.0.0 - 正式发布
 **目标：** 正式版发布
 
 **任务：**
